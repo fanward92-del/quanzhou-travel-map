@@ -1,0 +1,519 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>泉州路线 + 美食安排</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f6f4ef;
+      --panel: #fffdf8;
+      --ink: #1f2933;
+      --muted: #667085;
+      --line: #ded8ce;
+      --accent: #0f766e;
+      --food: #dc2626;
+      --sight: #2563eb;
+      --shadow: 0 14px 34px rgba(46, 40, 32, .16);
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100dvh;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      color: var(--ink);
+      background: var(--bg);
+    }
+
+    .app {
+      display: grid;
+      grid-template-columns: minmax(380px, 500px) minmax(0, 1fr);
+      height: 100dvh;
+    }
+
+    aside {
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+      border-right: 1px solid var(--line);
+      background: var(--panel);
+      box-shadow: var(--shadow);
+      z-index: 500;
+    }
+
+    header {
+      padding: 20px 22px 14px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    h1 {
+      margin: 0 0 8px;
+      font-size: 24px;
+      line-height: 1.2;
+      letter-spacing: 0;
+    }
+
+    .subtitle {
+      margin: 0;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.55;
+    }
+
+    .verdict {
+      margin-top: 14px;
+      padding: 10px 12px;
+      border: 1px solid #b7d8ce;
+      border-radius: 8px;
+      background: #eef8f5;
+      color: #10594f;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .tabs {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      padding: 14px 18px 12px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    button {
+      appearance: none;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 8px 12px;
+      background: white;
+      color: var(--ink);
+      cursor: pointer;
+      font: inherit;
+      font-size: 13px;
+      line-height: 1;
+    }
+
+    button.active {
+      color: white;
+      background: var(--accent);
+      border-color: var(--accent);
+    }
+
+    .panel {
+      min-height: 0;
+      overflow: auto;
+      padding: 14px 18px 20px;
+    }
+
+    h2 {
+      margin: 0 0 8px;
+      font-size: 18px;
+      letter-spacing: 0;
+    }
+
+    .summary {
+      margin: 0 0 14px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.55;
+    }
+
+    .block {
+      padding: 13px 0;
+      border-bottom: 1px solid #ece5d8;
+    }
+
+    .block-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 6px;
+    }
+
+    .meal {
+      color: var(--accent);
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .time {
+      color: var(--muted);
+      font-size: 12px;
+      white-space: nowrap;
+    }
+
+    h3 {
+      margin: 0;
+      font-size: 16px;
+      line-height: 1.35;
+      letter-spacing: 0;
+    }
+
+    .route {
+      margin-top: 6px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .note {
+      margin-top: 7px;
+      font-size: 13px;
+      line-height: 1.55;
+    }
+
+    .tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 9px;
+    }
+
+    .tag {
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 4px 8px;
+      background: white;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1;
+    }
+
+    .links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 9px;
+      margin-top: 9px;
+      font-size: 12px;
+    }
+
+    a {
+      color: #0f766e;
+      text-decoration: none;
+    }
+
+    a:hover { text-decoration: underline; }
+
+    #map {
+      min-height: 100dvh;
+      background: #e7dfd0;
+    }
+
+    .marker {
+      display: grid;
+      place-items: center;
+      width: 28px;
+      height: 28px;
+      border-radius: 50% 50% 50% 0;
+      transform: rotate(-45deg);
+      color: white;
+      border: 2px solid white;
+      box-shadow: 0 3px 10px rgba(0,0,0,.28);
+      font: 700 12px/1 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    .marker span {
+      transform: rotate(45deg);
+    }
+
+    .food-marker { background: var(--food); }
+    .sight-marker { background: var(--sight); }
+
+    .leaflet-popup-content {
+      margin: 12px 14px;
+      min-width: 220px;
+    }
+
+    .popup h3 {
+      margin: 0 0 6px;
+      font-size: 15px;
+    }
+
+    .popup p {
+      margin: 5px 0;
+      color: #4b5563;
+      line-height: 1.45;
+    }
+
+    .legend {
+      padding: 10px 12px;
+      background: rgba(255,255,255,.95);
+      border-radius: 8px;
+      box-shadow: 0 6px 22px rgba(0,0,0,.16);
+      font-size: 12px;
+      line-height: 1.55;
+    }
+
+    .legend-row {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      white-space: nowrap;
+    }
+
+    .legend-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+    }
+
+    .leaflet-control-attribution { font-size: 10px; }
+
+    @media (max-width: 900px) {
+      .app {
+        grid-template-columns: 1fr;
+        grid-template-rows: 52dvh 48dvh;
+      }
+
+      aside {
+        grid-row: 2;
+        border-right: 0;
+        border-top: 1px solid var(--line);
+      }
+
+      #map {
+        grid-row: 1;
+        min-height: 52dvh;
+      }
+
+      header { padding: 14px 16px 10px; }
+      h1 { font-size: 20px; }
+      .tabs { padding: 10px 14px; }
+      .panel { padding: 12px 14px 18px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <aside>
+      <header>
+        <h1>泉州路线 + 美食安排</h1>
+        <p class="subtitle">把必去景点和必吃店合在同一条动线上。古城按步行/短打车排，石狮单独一天，不和古城硬混。</p>
+        <div class="verdict">核心建议：周四早餐吃水门国仔，午餐打车去阿秋，下午天后宫后接秉正堂；周五石狮用“小吃拼盘 + 海岸线 + 绿岛海鲜”解决。</div>
+      </header>
+      <nav class="tabs" id="tabs"></nav>
+      <section class="panel" id="panel"></section>
+    </aside>
+    <section id="map" aria-label="泉州路线美食地图"></section>
+  </main>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script>
+    const days = [
+      {
+        id: "wed",
+        label: "周三晚",
+        color: "#7c3aed",
+        title: "周三晚：落地后轻吃，别把胃和腿都用完",
+        summary: "如果到得不晚，晚饭吃斯丹姜母鸭；如果到得晚，就把斯丹挪到周四晚，周三只逛西街和吃冰。",
+        stops: [
+          { type: "sight", n: "住", name: "古城附近住宿", meal: "入住", time: "晚间", lat: 24.9148, lng: 118.5858, route: "酒店 → 西街/钟楼", note: "住西街、钟楼、开元寺附近最省力。", tags: ["住宿", "古城"] },
+          { type: "food", n: "晚", name: "斯丹姜母鸭", meal: "晚饭", time: "到得不晚就吃", lat: 24.9061, lng: 118.5927, route: "酒店短打车或步行到涂门街", note: "你点名想吃，优先安排。若抵达太晚或排队，就挪到周四晚饭。", tags: ["必吃", "姜母鸭", "可顺清净寺"] },
+          { type: "food", n: "点", name: "丛甜牛奶冰", meal: "点心", time: "饭后/夜宵", lat: 24.9108, lng: 118.5859, route: "斯丹/钟楼 → 新华北路 → 西街", note: "位置适合晚上回西街路上吃。周三没吃到，就放周四下午或晚上。", tags: ["必吃", "甜品", "西街附近"] },
+          { type: "sight", n: "逛", name: "西街 + 钟楼夜景", meal: "散步", time: "20:30-22:00", lat: 24.9149599, lng: 118.5880777, route: "西街慢走到钟楼", note: "只做夜景和轻逛，不再加寺庙。", tags: ["夜景", "轻松"] }
+        ]
+      },
+      {
+        id: "thu",
+        label: "周四古城",
+        color: "#2563eb",
+        title: "周四：古城景点 + 古城必吃集中解决",
+        summary: "这一天最关键。早餐水门国仔，上午古城景点，午餐阿秋或阿波二选一，下午天后宫后四果汤，傍晚补肉燕、醋肉和牛奶冰。",
+        stops: [
+          { type: "food", n: "早", name: "水门国仔面线糊", meal: "早餐", time: "08:00-08:40", lat: 24.906613, lng: 118.589396, route: "酒店 → 水门/中山中路 → 开元寺", note: "官方资料有美食街155号、水门巷21号，高德另见中山中路118/120号；当天选离酒店最近且营业的分店。", tags: ["必吃", "面线糊", "早餐"] },
+          { type: "sight", n: "游", name: "开元寺 → 西街 → 钟楼", meal: "上午景点", time: "09:00-10:50", lat: 24.9173271, lng: 118.5810737, route: "开元寺开始，从西街走到钟楼", note: "早上先去开元寺，避开中午人多和热。", tags: ["开元寺", "西街", "钟楼"] },
+          { type: "sight", n: "游", name: "清净寺 + 关岳庙", meal: "上午景点", time: "11:10-12:20", lat: 24.9056688, lng: 118.5870941, route: "钟楼 → 涂门街", note: "两个点很近，关岳庙是你必去点。", tags: ["清净寺", "关岳庙", "必去"] },
+          { type: "food", n: "午", name: "阿秋牛排总店", meal: "午饭", time: "12:40-13:50", lat: 24.9142, lng: 118.6083, route: "关岳庙打车约15-20分钟", note: "阿秋/阿波二选一我建议选阿秋总店，更符合你点名的本地牛排。若排队太久，改阿波牛肉。", tags: ["必吃", "牛肉", "打车"] },
+          { type: "food", n: "备", name: "阿波牛肉店", meal: "午饭备选", time: "同午饭", lat: 24.885253, lng: 118.594977, route: "阿秋排队太久时替换", note: "浦西万达旁，适合不想跑湖心街时替代。", tags: ["牛肉", "备选"] },
+          { type: "sight", n: "游", name: "天后宫 + 德济门遗址", meal: "下午景点", time: "14:30-15:40", lat: 24.9006, lng: 118.5883, route: "牛排店打车到天后宫", note: "你必去点，下午留足时间。", tags: ["必去", "天后宫"] },
+          { type: "food", n: "点", name: "秉正堂四果汤", meal: "下午点心", time: "15:45-16:10", lat: 24.9006, lng: 118.5883, route: "天后宫旁边就近吃", note: "天后宫后最顺，拿它做下午休息点。", tags: ["必吃", "四果汤", "顺路"] },
+          { type: "food", n: "点", name: "老字号肉燕汤", meal: "傍晚点心", time: "16:40-17:10", lat: 24.909214, lng: 118.589543, route: "天后宫/中山路 → 奎霞巷", note: "别当正餐，点一份肉燕汤或拌面分着吃。", tags: ["必吃", "肉燕"] },
+          { type: "food", n: "点", name: "美美阿姨醋肉", meal: "傍晚点心", time: "17:10-17:40", lat: 24.914683, lng: 118.593378, route: "奎霞巷 → 县后街", note: "已定位的醋肉点，尽量赶刚炸；可以外带，给晚饭留肚子。", tags: ["必吃", "醋肉"] },
+          { type: "food", n: "补", name: "铁记醋肉", meal: "补漏点心", time: "当天定位后插入", lat: 24.9073, lng: 118.5870, route: "古城内按高德定位替换/追加", note: "你点名要吃，但我没核到可靠门牌。当天若能定位到铁记，就把它放在美美阿姨前后；找不到不取消醋肉，至少保留美美阿姨。", tags: ["必吃", "待定位", "醋肉"] },
+          { type: "food", n: "晚", name: "斯丹姜母鸭/古城自由晚饭", meal: "晚饭", time: "18:30以后", lat: 24.9061, lng: 118.5927, route: "若周三未吃斯丹，周四晚补", note: "周三吃过斯丹，这顿就轻一点；周三没吃成，周四晚一定补。", tags: ["姜母鸭", "补漏"] }
+        ]
+      },
+      {
+        id: "fri",
+        label: "周五石狮",
+        color: "#dc2626",
+        title: "周五：石狮单独一天，小吃拼盘 + 海岸线 + 绿岛海鲜",
+        summary: "石狮吃的不要和古城混排。上午先在石狮市区吃小吃，随后去洛伽寺/黄金海岸/红塔湾/永宁古镇，晚上绿岛海鲜收尾。",
+        stops: [
+          { type: "sight", n: "出", name: "古城出发去石狮", meal: "出发", time: "08:00-08:30", lat: 24.9148, lng: 118.5858, route: "建议打车或包车", note: "公共交通会拖慢石狮海岸线。", tags: ["出发", "打车"] },
+          { type: "food", n: "早", name: "王川花生汤", meal: "早餐", time: "09:20-09:45", lat: 24.7256, lng: 118.6422, route: "古城 → 石狮市区", note: "先吃甜口早餐，后面小吃都小份分着吃。", tags: ["必吃", "石狮", "早餐"] },
+          { type: "food", n: "点", name: "马脚桥鱼肉羹", meal: "上午点心", time: "10:00-10:20", lat: 24.7341, lng: 118.6465, route: "王川 → 人民路", note: "石狮小吃第一站之一，建议小份。", tags: ["必吃", "鱼肉羹"] },
+          { type: "food", n: "点", name: "约记大仑街肉粽", meal: "上午点心", time: "10:25-10:40", lat: 24.7313, lng: 118.6462, route: "人民路 → 大仑街", note: "和福记蚵仔煎同街区，适合拼着尝。", tags: ["必吃", "肉粽"] },
+          { type: "food", n: "点", name: "福记蚵仔煎", meal: "早午点心", time: "10:40-11:05", lat: 24.7310, lng: 118.6460, route: "大仑街内步行", note: "别点多，后面还要海岸线和晚上海鲜。", tags: ["必吃", "蚵仔煎"] },
+          { type: "sight", n: "游", name: "洛伽寺 + 黄金海岸", meal: "中午海岸线", time: "11:45-13:10", lat: 24.6762788, lng: 118.7080767, route: "石狮市区 → 永宁海边", note: "黄金海岸线是你的重点，先把海边核心点完成。", tags: ["必去", "黄金海岸", "洛伽寺"] },
+          { type: "sight", n: "游", name: "永宁古镇", meal: "午后休息", time: "13:30-14:40", lat: 24.6680, lng: 118.6860, route: "海边 → 永宁镇", note: "适合避晒、避雨和慢走，不必把每条巷都走完。", tags: ["古镇", "休息"] },
+          { type: "sight", n: "游", name: "红塔湾/观音山机动", meal: "下午机动", time: "15:00-16:10", lat: 24.6891845, lng: 118.7154057, route: "永宁 → 红塔湾", note: "天气好就去红塔湾；观音山只在有体力、有车、天气好时补。", tags: ["红塔湾", "观音山", "机动"] },
+          { type: "food", n: "晚", name: "绿岛海鲜酒楼/绿岛酒店", meal: "晚饭", time: "17:30-19:00", lat: 24.7290, lng: 118.6540, route: "海岸线 → 石狮市区 → 回泉州", note: "绿岛海鲜酒楼核到九二路447-451号；绿岛酒店在八七路一带。吃海鲜优先搜绿岛海鲜酒楼。", tags: ["必吃", "海鲜", "石狮晚饭"] }
+        ]
+      },
+      {
+        id: "sat",
+        label: "周六返程",
+        color: "#ea580c",
+        title: "周六：洛阳桥 + 古城补漏",
+        summary: "周六不要再排重餐。上午洛阳桥，回古城后只做补漏：没吃到的水门国仔、肉燕、醋肉或牛奶冰择一。",
+        stops: [
+          { type: "food", n: "早", name: "古城补漏早餐", meal: "早餐", time: "08:00-08:40", lat: 24.906613, lng: 118.589396, route: "酒店附近择一", note: "优先补没吃到的水门国仔；已经吃过就简单早餐。", tags: ["补漏", "早餐"] },
+          { type: "sight", n: "游", name: "洛阳桥", meal: "上午景点", time: "09:30-10:40", lat: 24.9554008, lng: 118.6767712, route: "古城打车往返", note: "上午完成最稳，给下午返程留余量。", tags: ["洛阳桥", "返程日"] },
+          { type: "food", n: "午", name: "古城轻午餐/补漏点心", meal: "午饭", time: "11:30-12:30", lat: 24.9148, lng: 118.5858, route: "回古城取行李", note: "如果周四漏了老字号肉燕汤、美美阿姨醋肉、丛甜牛奶冰，这里只补一个，不要硬吃全套。", tags: ["补漏", "轻食"] },
+          { type: "sight", n: "返", name: "取行李返程", meal: "返程", time: "下午", lat: 24.9848, lng: 118.5453, route: "按实际车站调整", note: "如果不是泉州站，按泉州南/晋江站重新算时间。", tags: ["返程"] }
+        ]
+      }
+    ];
+
+    const tabs = document.getElementById("tabs");
+    const panel = document.getElementById("panel");
+    const map = L.map("map", { scrollWheelZoom: true }).setView([24.88, 118.62], 10);
+
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      maxZoom: 19,
+      attribution: '&copy; OpenStreetMap contributors'
+    }).addTo(map);
+
+    const markerLayer = L.layerGroup().addTo(map);
+    const lineLayer = L.layerGroup().addTo(map);
+    const markerMap = new Map();
+    let active = "thu";
+
+    const amapSearch = (stop) => `https://www.amap.com/search?query=${encodeURIComponent(stop.name + " 泉州")}`;
+
+    function markerIcon(stop) {
+      const klass = stop.type === "food" ? "food-marker" : "sight-marker";
+      return L.divIcon({
+        className: "",
+        html: `<div class="marker ${klass}"><span>${stop.n}</span></div>`,
+        iconSize: [32, 32],
+        iconAnchor: [16, 29],
+        popupAnchor: [0, -27]
+      });
+    }
+
+    function popup(stop) {
+      return `
+        <div class="popup">
+          <h3>${stop.name}</h3>
+          <p><b>${stop.meal}</b> · ${stop.time}</p>
+          <p>${stop.route}</p>
+          <p>${stop.note}</p>
+          <p><a href="${amapSearch(stop)}" target="_blank" rel="noreferrer">高德搜索</a></p>
+        </div>
+      `;
+    }
+
+    function dayStops() {
+      if (active === "all") return days.flatMap((day) => day.stops.map((stop) => ({ ...stop, dayColor: day.color, dayId: day.id })));
+      const day = days.find((item) => item.id === active);
+      return day.stops.map((stop) => ({ ...stop, dayColor: day.color, dayId: day.id }));
+    }
+
+    function draw() {
+      markerLayer.clearLayers();
+      lineLayer.clearLayers();
+      markerMap.clear();
+
+      const selectedDays = active === "all" ? days : days.filter((day) => day.id === active);
+      const bounds = [];
+
+      selectedDays.forEach((day) => {
+        const coords = day.stops.map((stop) => [stop.lat, stop.lng]);
+        L.polyline(coords, { color: day.color, weight: 4, opacity: .75, dashArray: day.id === "fri" ? "10 7" : null }).addTo(lineLayer);
+        day.stops.forEach((stop, index) => {
+          const key = `${day.id}-${index}`;
+          const marker = L.marker([stop.lat, stop.lng], { icon: markerIcon(stop) }).bindPopup(popup(stop));
+          marker.addTo(markerLayer);
+          markerMap.set(key, marker);
+          bounds.push([stop.lat, stop.lng]);
+        });
+      });
+
+      if (bounds.length) map.fitBounds(bounds, { padding: [34, 34] });
+    }
+
+    function renderPanel() {
+      if (active === "all") {
+        panel.innerHTML = `
+          <h2>总览：按天分开吃，不把石狮塞进古城</h2>
+          <p class="summary">古城必吃集中在周三晚和周四；石狮必吃集中在周五。这样最不容易崩，也能把你点名的店都放进去。</p>
+          ${days.map((day) => `
+            <section class="block">
+              <div class="block-head"><span class="meal">${day.label}</span><span class="time">${day.stops.length} 个点</span></div>
+              <h3>${day.title}</h3>
+              <div class="note">${day.summary}</div>
+            </section>
+          `).join("")}
+        `;
+        return;
+      }
+
+      const day = days.find((item) => item.id === active);
+      panel.innerHTML = `
+        <h2>${day.title}</h2>
+        <p class="summary">${day.summary}</p>
+        ${day.stops.map((stop, index) => `
+          <article class="block">
+            <div class="block-head">
+              <span class="meal">${stop.meal}</span>
+              <span class="time">${stop.time}</span>
+            </div>
+            <h3>${stop.name}</h3>
+            <div class="route">${stop.route}</div>
+            <div class="note">${stop.note}</div>
+            <div class="tags">${stop.tags.map((tag) => `<span class="tag">${tag}</span>`).join("")}</div>
+            <div class="links">
+              <a href="#" data-focus="${day.id}-${index}">地图定位</a>
+              <a href="${amapSearch(stop)}" target="_blank" rel="noreferrer">高德搜索</a>
+            </div>
+          </article>
+        `).join("")}
+      `;
+    }
+
+    function activate(dayId) {
+      active = dayId;
+      [...tabs.children].forEach((button) => button.classList.toggle("active", button.dataset.day === dayId));
+      draw();
+      renderPanel();
+    }
+
+    [{ id: "all", label: "总览" }, ...days].forEach((day) => {
+      const button = document.createElement("button");
+      button.dataset.day = day.id;
+      button.textContent = day.label;
+      button.className = day.id === active ? "active" : "";
+      button.addEventListener("click", () => activate(day.id));
+      tabs.appendChild(button);
+    });
+
+    panel.addEventListener("click", (event) => {
+      const target = event.target.closest("[data-focus]");
+      if (!target) return;
+      event.preventDefault();
+      const marker = markerMap.get(target.dataset.focus);
+      if (!marker) return;
+      map.setView(marker.getLatLng(), 16);
+      marker.openPopup();
+    });
+
+    const legend = L.control({ position: "bottomright" });
+    legend.onAdd = () => {
+      const div = L.DomUtil.create("div", "legend");
+      div.innerHTML = `
+        <div class="legend-row"><span class="legend-dot" style="background:var(--sight)"></span>景点/交通</div>
+        <div class="legend-row"><span class="legend-dot" style="background:var(--food)"></span>吃饭/点心</div>
+      `;
+      return div;
+    };
+    legend.addTo(map);
+
+    activate(active);
+  </script>
+</body>
+</html>

@@ -47,7 +47,7 @@
 
     .grid {
       display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
+      grid-template-columns: repeat(3, minmax(0, 1fr));
       gap: 16px;
     }
 
@@ -104,8 +104,15 @@
 <body>
   <main>
     <h1>泉州旅行地图</h1>
-    <p class="lead">这里放了两张互动地图：一张看三晚三天的游玩路线，一张看泉州美食点位。打开后可以筛选、搜索，也可以点地图上的标记看说明。</p>
+    <p class="lead">这里放了三张互动地图：路线+美食安排、三晚三天游玩路线、泉州美食点位。打开后可以筛选、搜索，也可以点地图上的标记看说明。</p>
     <section class="grid">
+      <article class="card">
+        <div>
+          <h2>路线+美食安排</h2>
+          <p>按早餐、午饭、晚饭、点心把必吃店放进行程边上，古城和石狮分开排。</p>
+        </div>
+        <a class="button" href="./trip-food.html">打开综合版</a>
+      </article>
       <article class="card">
         <div>
           <h2>行程路线图</h2>
