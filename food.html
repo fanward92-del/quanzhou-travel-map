@@ -1,0 +1,503 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>泉州美食点位地图</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f7f4ef;
+      --panel: #fffdf8;
+      --ink: #1f2933;
+      --muted: #687385;
+      --line: #ddd6cb;
+      --accent: #0f766e;
+      --shadow: 0 14px 34px rgba(52, 47, 39, .16);
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100dvh;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      color: var(--ink);
+      background: var(--bg);
+    }
+
+    .app {
+      display: grid;
+      grid-template-columns: minmax(340px, 430px) minmax(0, 1fr);
+      height: 100dvh;
+    }
+
+    aside {
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+      border-right: 1px solid var(--line);
+      background: var(--panel);
+      box-shadow: var(--shadow);
+      z-index: 500;
+    }
+
+    header {
+      padding: 20px 22px 16px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    h1 {
+      margin: 0 0 8px;
+      font-size: 24px;
+      line-height: 1.2;
+      letter-spacing: 0;
+    }
+
+    .subtitle {
+      margin: 0;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.55;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
+      margin-top: 14px;
+    }
+
+    .stat {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 9px 10px;
+      background: #fbf7ee;
+    }
+
+    .stat b {
+      display: block;
+      font-size: 18px;
+    }
+
+    .stat span {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .controls {
+      padding: 14px 18px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .search {
+      width: 100%;
+      height: 40px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 0 12px;
+      font: inherit;
+      background: white;
+      color: var(--ink);
+    }
+
+    .filters {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px;
+      margin-top: 10px;
+    }
+
+    button {
+      appearance: none;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 7px 10px;
+      background: white;
+      color: var(--ink);
+      cursor: pointer;
+      font: inherit;
+      font-size: 13px;
+      line-height: 1;
+    }
+
+    button.active {
+      color: white;
+      background: var(--accent);
+      border-color: var(--accent);
+    }
+
+    .list {
+      min-height: 0;
+      overflow: auto;
+      padding: 12px 14px 18px;
+    }
+
+    .item {
+      display: grid;
+      grid-template-columns: 12px 1fr;
+      gap: 10px;
+      padding: 12px 8px;
+      border-bottom: 1px solid #ece5d8;
+    }
+
+    .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      margin-top: 7px;
+      border: 2px solid white;
+      box-shadow: 0 0 0 1px rgba(0,0,0,.12);
+    }
+
+    .item h2 {
+      margin: 0;
+      font-size: 15px;
+      line-height: 1.35;
+      letter-spacing: 0;
+    }
+
+    .meta {
+      margin-top: 5px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .note {
+      margin-top: 6px;
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    .links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 8px;
+      font-size: 12px;
+    }
+
+    a {
+      color: #0f766e;
+      text-decoration: none;
+    }
+
+    a:hover { text-decoration: underline; }
+
+    #map {
+      min-height: 100dvh;
+      background: #e8e0d2;
+    }
+
+    .pin {
+      width: 20px;
+      height: 20px;
+      border-radius: 50% 50% 50% 0;
+      transform: rotate(-45deg);
+      border: 2px solid white;
+      box-shadow: 0 2px 8px rgba(0,0,0,.28);
+    }
+
+    .pin span {
+      display: block;
+      width: 6px;
+      height: 6px;
+      margin: 5px;
+      border-radius: 50%;
+      background: white;
+    }
+
+    .popup h3 {
+      margin: 0 0 6px;
+      font-size: 15px;
+    }
+
+    .popup p {
+      margin: 5px 0;
+      color: #4b5563;
+      line-height: 1.45;
+    }
+
+    .legend {
+      padding: 10px 12px;
+      background: rgba(255,255,255,.95);
+      border-radius: 8px;
+      box-shadow: 0 6px 22px rgba(0,0,0,.16);
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    .legend-row {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      white-space: nowrap;
+    }
+
+    .legend-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+    }
+
+    .leaflet-control-attribution { font-size: 10px; }
+
+    @media (max-width: 860px) {
+      .app {
+        grid-template-columns: 1fr;
+        grid-template-rows: 54dvh 46dvh;
+      }
+
+      aside {
+        grid-row: 2;
+        border-right: 0;
+        border-top: 1px solid var(--line);
+      }
+
+      #map {
+        grid-row: 1;
+        min-height: 54dvh;
+      }
+
+      header { padding: 14px 16px 10px; }
+      h1 { font-size: 20px; }
+      .stats { margin-top: 10px; }
+      .controls { padding: 10px 14px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <aside>
+      <header>
+        <h1>泉州美食点位地图</h1>
+        <p class="subtitle">按你给的本地人推荐和视频清单整理。绿色“地址级/坐标级”更适合直接导航；“街区级/待确认”建议出发前再用高德确认。</p>
+        <div class="stats">
+          <div class="stat"><b id="totalCount">0</b><span>总条目</span></div>
+          <div class="stat"><b id="mappedCount">0</b><span>已上图</span></div>
+          <div class="stat"><b id="exactCount">0</b><span>较准点位</span></div>
+        </div>
+      </header>
+      <section class="controls">
+        <input class="search" id="search" type="search" placeholder="搜索店名、品类、区域" />
+        <div class="filters" id="filters"></div>
+      </section>
+      <section class="list" id="list" aria-live="polite"></section>
+    </aside>
+    <section id="map" aria-label="泉州美食地图"></section>
+  </main>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script>
+    const categories = {
+      "面线糊": "#2563eb",
+      "牛肉": "#b45309",
+      "姜母鸭": "#dc2626",
+      "醋肉炸物": "#7c3aed",
+      "甜品饮料": "#059669",
+      "主食汤点": "#0d9488",
+      "海鲜正餐": "#0284c7",
+      "烧烤夜宵": "#ea580c",
+      "石狮晋江": "#475569",
+      "待确认": "#6b7280"
+    };
+
+    const points = [
+      { name: "a文面线糊", category: "面线糊", area: "鲤城新门街", address: "泉州市鲤城区新门街354号", lat: 24.9088, lng: 118.5842, precision: "地址级", priority: "优先", note: "新门街十字路口、八卦沟桥边；可把醋肉/油条一起加。", source: "携程核对" },
+      { name: "后城面线糊", category: "面线糊", area: "鲤城后城街", address: "泉州市鲤城区后城街179号D101", lat: 24.903935, lng: 118.590389, precision: "坐标级", priority: "顺路", note: "视频清单点位，靠近中山南路/水门一带。", source: "高德核对" },
+      { name: "国仔面线糊(水门国仔总店)", category: "面线糊", area: "鲤城水门", address: "水门巷/中山南路附近", lat: 24.9020, lng: 118.5901, precision: "街区级", priority: "优先", note: "多条评论提到；适合老城早餐，具体门牌出发前再搜。", source: "用户推荐+携程相邻推荐" },
+      { name: "原桥尾面线糊", category: "面线糊", area: "江滨南路/朵莲寺", address: "江滨南路与324国道交叉口西50米，朵莲寺旁", lat: 24.8420, lng: 118.5660, precision: "街区级", priority: "专程", note: "本地人强推口味正宗；位置偏，不建议和古城步行混在一起。", source: "网页核对" },
+      { name: "老记面线糊", category: "待确认", area: "待确认", address: "用户只提供店名，未核到可靠地址", lat: null, lng: null, precision: "待确认", priority: "备选", note: "先保留，不上图。", source: "用户推荐" },
+      { name: "平啊面线糊", category: "待确认", area: "待确认", address: "用户只提供店名，未核到可靠地址", lat: null, lng: null, precision: "待确认", priority: "备选", note: "先保留，不上图。", source: "用户推荐" },
+
+      { name: "阿秋牛排(湖心街总店)", category: "牛肉", area: "丰泽湖心街", address: "泉州市丰泽区湖心街500号", lat: 24.9142, lng: 118.6083, precision: "地址级", priority: "优先", note: "本地人点名总店；牛排、牛肉丸汤、拌面常见搭配。", source: "米其林/携程核对" },
+      { name: "阿波牛肉店", category: "牛肉", area: "丰泽宝洲街", address: "泉州市丰泽区宝洲街781号", lat: 24.885253, lng: 118.594977, precision: "坐标级", priority: "优先", note: "浦西万达旁，适合和万达/领SHOW天地行程合并。", source: "高德核对" },
+      { name: "阿泉全牛馆(泉州总店)", category: "牛肉", area: "鲤城兴贤路", address: "泉州市鲤城区江南街道兴贤路近环岛", lat: 24.8916, lng: 118.5559, precision: "街区级", priority: "备选", note: "有人夸汤，也有人认为营销多；可作为西南片区备选。", source: "携程核对" },
+      { name: "辉记牛肉火锅(东海总店)", category: "牛肉", area: "丰泽东海", address: "通港西街/石头街菜市场一带", lat: 24.8857, lng: 118.6558, precision: "街区级", priority: "备选", note: "用户提到市政府附近、饭点人多；另有海西店坐标但与描述不完全一致。", source: "网页核对" },
+      { name: "歪头牛肉(梅岭路/金龙壹号)", category: "牛肉", area: "晋江梅岭", address: "晋江市梅岭路472-476号/金龙壹号附近", lat: 24.8193, lng: 118.5748, precision: "街区级", priority: "备选", note: "晋江牛肉备选，适合住晋江或顺路。", source: "米其林/城市吧核对" },
+      { name: "真味牛肉坊", category: "待确认", area: "晋江", address: "用户只提供店名和招牌汤，未核到可靠地址", lat: null, lng: null, precision: "待确认", priority: "备选", note: "保留为待查。", source: "用户推荐" },
+
+      { name: "美美阿姨醋肉", category: "醋肉炸物", area: "鲤城县后街", address: "泉州市鲤城区开元街道东北社区县后街22号", lat: 24.914683, lng: 118.593378, precision: "坐标级", priority: "顺路", note: "县后街小巷里，醋肉/菜粿称重；建议赶刚炸。", source: "高德/携程核对" },
+      { name: "桥头醋肉", category: "醋肉炸物", area: "鲤城幸福街", address: "幸福街/桥头一带", lat: 24.9073, lng: 118.5870, precision: "街区级", priority: "优先", note: "本地评论说“搜幸福街就可以”；与古城步行线兼容。", source: "用户推荐" },
+      { name: "铁记醋肉", category: "待确认", area: "待确认", address: "用户只提供店名，未核到可靠地址", lat: null, lng: null, precision: "待确认", priority: "备选", note: "先保留，不上图。", source: "用户推荐" },
+      { name: "大叔炸物", category: "醋肉炸物", area: "丰泽东海", address: "泉州市丰泽区东海街道云山社区院前路4号楼前面", lat: 24.9018, lng: 118.6366, precision: "街区级", priority: "视频清单", note: "视频清单里的路边摊点位，适合夜间顺路。", source: "用户提供地址" },
+
+      { name: "斯丹姜母鸭(涂门街总店)", category: "姜母鸭", area: "鲤城涂门街", address: "涂门街清净寺西侧一带", lat: 24.9061, lng: 118.5927, precision: "街区级", priority: "优先", note: "干香路线，游客友好；价格通常比小店高。", source: "携程/Trip核对" },
+      { name: "张林阿山姜母鸭(新华北路店)", category: "姜母鸭", area: "鲤城新华北路", address: "泉州市鲤城区新华路甲第门65-7.8.9", lat: 24.911231, lng: 118.583200, precision: "坐标级", priority: "优先", note: "可加鸭血；市区内比去晋江张林方便。", source: "高德/携程核对" },
+      { name: "宴福天姜母鸭(西街店)", category: "姜母鸭", area: "鲤城西街", address: "泉州市鲤城区西街397-1号", lat: 24.9160, lng: 118.5825, precision: "街区级", priority: "顺路", note: "用户吃过觉得可以；西街附近方便但游客流量大。", source: "网页核对" },
+      { name: "张林远华饭店", category: "姜母鸭", area: "晋江张林", address: "晋江市双龙路123号(近春生饭店)", lat: 24.7810, lng: 118.5260, precision: "街区级", priority: "专程", note: "晋江姜母鸭名店，适合包车/自驾，不适合古城步行日硬塞。", source: "360地图/携程核对" },
+      { name: "春生饭店", category: "姜母鸭", area: "晋江张林", address: "晋江市北环双内路125号一带", lat: 24.7817, lng: 118.5268, precision: "街区级", priority: "备选", note: "远华隔壁，可二选一。", source: "360地图结果" },
+
+      { name: "秉正堂四果汤(天后宫总店)", category: "甜品饮料", area: "鲤城天后宫", address: "泉州市鲤城区天后路1-3号", lat: 24.9006, lng: 118.5883, precision: "地址级", priority: "顺路", note: "石花膏/四果汤，适合天后宫、关岳庙一线休息。", source: "鲤城区政府/Trip核对" },
+      { name: "二院附近四果汤", category: "甜品饮料", area: "鲤城二院", address: "福建医科大学附属第二医院鲤城院区附近", lat: 24.9159, lng: 118.5913, precision: "街区级", priority: "备选", note: "本地人建议“找二院附近的”，具体摊位现场看人流。", source: "用户推荐" },
+      { name: "阿玲花生汤", category: "甜品饮料", area: "鲤城承天巷", address: "泉州市鲤城区承天巷62号", lat: 24.9106, lng: 118.5925, precision: "地址级", priority: "优先", note: "早餐甜口，加蛋/油条；营业时段可能较短。", source: "永安/本地宝核对" },
+      { name: "王川花生汤", category: "甜品饮料", area: "石狮", address: "石狮市聚祥路悦景府16-17号店铺", lat: 24.7256, lng: 118.6422, precision: "街区级", priority: "石狮顺路", note: "石狮老牌花生汤，适合和八卦街小吃一起。", source: "携程/澎湃核对" },
+      { name: "丛甜牛奶冰", category: "甜品饮料", area: "鲤城新华北路", address: "泉州市鲤城区新华北路131号", lat: 24.9108, lng: 118.5859, precision: "地址级", priority: "顺路", note: "夏天吃冰，靠近西街/新华北路动线。", source: "用户提供地址" },
+      { name: "郑永金养生甜汤", category: "甜品饮料", area: "鲤城霞洲", address: "泉州市鲤城区霞洲街安置房864号/兴贤路与霞州北路附近", lat: 24.8845, lng: 118.5675, precision: "街区级", priority: "视频清单", note: "视频清单点位，地址描述有两个版本，出发前再搜。", source: "用户提供地址" },
+      { name: "五福糖水", category: "甜品饮料", area: "鲤城泉南堂", address: "泉南堂西北门南约190米", lat: 24.9044, lng: 118.5932, precision: "街区级", priority: "视频清单", note: "甜水备选，适合古城晚间顺路。", source: "用户提供地址" },
+      { name: "团结水果店", category: "甜品饮料", area: "鲤城新华北路", address: "新华北路一带", lat: 24.9105, lng: 118.5860, precision: "街区级", priority: "顺路", note: "酸野/腌水果，本地文里提到新华北路老店。", source: "网页核对" },
+      { name: "东来菜头酸(金鱼巷店)", category: "甜品饮料", area: "鲤城金鱼巷", address: "泉州市鲤城区金鱼巷3号", lat: 24.9078, lng: 118.5908, precision: "地址级", priority: "顺路", note: "菜头酸、油柑汁，适合中山街散步时买。", source: "360地图/携程核对" },
+
+      { name: "亚佛润饼皮", category: "主食汤点", area: "鲤城西街", address: "泉州市鲤城区西街165号", lat: 24.9156, lng: 118.5855, precision: "地址级", priority: "顺路", note: "中华老字号，买润饼皮/润饼菜。", source: "泉州美食之都官网" },
+      { name: "泮宫卤面", category: "主食汤点", area: "丰泽兰台路", address: "泉州市丰泽区兰台路115号", lat: 24.9029, lng: 118.6137, precision: "地址级", priority: "备选", note: "官方美食地图收录；与古城核心略有距离。", source: "泉州美食之都官网" },
+      { name: "老字号肉燕汤", category: "主食汤点", area: "鲤城奎霞巷", address: "泉州市鲤城区奎霞巷26号", lat: 24.909214, lng: 118.589543, precision: "坐标级", priority: "顺路", note: "肉燕汤/拌面，用户反馈没必要专程但顺路可吃。", source: "高德核对" },
+      { name: "老字号泮宫蚵仔煎", category: "主食汤点", area: "鲤城/浮桥", address: "金龙石崎社区福隆新城14幢104号店", lat: 24.8870, lng: 118.5525, precision: "街区级", priority: "备选", note: "用户提到老泮宫海蛎煎；网页核到同名店。", source: "Trip核对" },
+      { name: "康庄满煎糕", category: "主食汤点", area: "鲤城西街裴巷", address: "泉州市鲤城区开元街道裴巷35号", lat: 24.9154, lng: 118.5856, precision: "地址级", priority: "顺路", note: "早餐/下午茶小点，西街步行线很好插入。", source: "携程/百度地图核对" },
+      { name: "永宁水煎包(新门街)", category: "主食汤点", area: "鲤城新门街", address: "泉州市鲤城区新门街364号", lat: 24.9086, lng: 118.5837, precision: "地址级", priority: "视频清单", note: "和a文面线糊相邻，可同一段走。", source: "用户提供地址" },
+      { name: "张耀伯菜粿", category: "石狮晋江", area: "晋江安海", address: "晋江市安海镇成功西路103号", lat: 24.7161, lng: 118.4638, precision: "街区级", priority: "远郊", note: "安海小吃线，可和土笋冻、菜粿合并。", source: "用户提供地址" },
+      { name: "安海长火土笋冻", category: "石狮晋江", area: "晋江安海", address: "晋江市安海镇兴安C里2号", lat: 24.7146, lng: 118.4650, precision: "街区级", priority: "远郊", note: "安海土笋冻代表点。", source: "用户提供地址" },
+      { name: "翁氏润饼菜", category: "石狮晋江", area: "晋江安海", address: "晋江市兴东西路与通海路交叉口东南60米", lat: 24.7194, lng: 118.4690, precision: "街区级", priority: "远郊", note: "安海/晋江润饼菜补充。", source: "用户提供地址" },
+
+      { name: "马脚桥鱼肉羹", category: "石狮晋江", area: "石狮", address: "石狮市人民路83号", lat: 24.7341, lng: 118.6465, precision: "地址级", priority: "石狮顺路", note: "视频清单点位。", source: "用户提供地址" },
+      { name: "福记蚵仔煎", category: "石狮晋江", area: "石狮八卦街", address: "石狮市大仑街8号/八卦街菜市场对面", lat: 24.7310, lng: 118.6460, precision: "街区级", priority: "石狮顺路", note: "有人反馈20元偏贵、海蛎不多；当作八卦街顺路尝。", source: "用户提供地址" },
+      { name: "约记大仑街肉粽", category: "石狮晋江", area: "石狮八卦街", address: "石狮市大仑街25号", lat: 24.7313, lng: 118.6462, precision: "街区级", priority: "石狮顺路", note: "用户试吃反馈一般，保留为补充点。", source: "用户提供地址" },
+      { name: "王川花生汤(中骏悦景府店)", category: "石狮晋江", area: "石狮", address: "石狮市聚祥路悦景府16-17号店铺", lat: 24.7256, lng: 118.6422, precision: "街区级", priority: "石狮顺路", note: "同甜品条目，石狮早餐线核心。", source: "携程核对" },
+      { name: "港阜小番杂菜卤", category: "石狮晋江", area: "晋江深沪", address: "晋江市深沪镇港阜街东19号", lat: 24.6087, lng: 118.6724, precision: "街区级", priority: "远郊", note: "深沪线，离古城很远。", source: "用户提供地址" },
+      { name: "深沪烽火台水丸店", category: "石狮晋江", area: "晋江深沪", address: "晋江市深沪镇佳源商业城一层", lat: 24.6106, lng: 118.6741, precision: "街区级", priority: "远郊", note: "深沪线可与拳头母鱼饼/水丸类一起。", source: "用户提供地址" },
+      { name: "大井头正宗肉粽壶仔饭", category: "石狮晋江", area: "晋江", address: "晋江市狮峰中心学校东南门西南约100米", lat: 24.7350, lng: 118.5950, precision: "街区级", priority: "远郊", note: "视频清单点位，坐标为学校附近约略。", source: "用户提供地址" },
+      { name: "绿岛海鲜酒楼/绿岛酒店", category: "石狮晋江", area: "石狮", address: "石狮绿岛酒店或旧绿岛海鲜酒楼", lat: 24.7290, lng: 118.6540, precision: "街区级", priority: "石狮顺路", note: "用户提到松茸包、马加羹；具体分店出发前再确认。", source: "用户推荐" },
+
+      { name: "庆有余(浦西央街店)", category: "海鲜正餐", area: "丰泽浦西", address: "泉州市丰泽区草埕花园10号楼", lat: 24.8875, lng: 118.5966, precision: "地址级", priority: "高预算", note: "海鲜正餐，用户提到冻花蟹、糖心皮皮虾；人均跨度大。", source: "米其林/Trip核对" },
+      { name: "无牙海鲜馆", category: "海鲜正餐", area: "晋江仙石", address: "晋江市仙石村沙园路56号", lat: 24.7530, lng: 118.5860, precision: "街区级", priority: "远郊", note: "用户给出的海鲜馆备选。", source: "用户提供地址" },
+      { name: "田大侠烧烤总店", category: "烧烤夜宵", area: "鲤城浮桥", address: "鲤城区江滨南路金色外滩2207-104号", lat: 24.8790, lng: 118.5650, precision: "街区级", priority: "夜宵", note: "炒钉螺被点名；适合晚上。", source: "用户提供地址" },
+      { name: "铁霞烧烤/明英烧烤", category: "烧烤夜宵", area: "鲤城后城/水门一带", address: "后城/水门一带，具体门牌待确认", lat: 24.9038, lng: 118.5900, precision: "街区级", priority: "夜宵", note: "花生酱烧烤路线，用户提到明英、铁霞。", source: "用户推荐+视频线索" },
+      { name: "美味烧烤", category: "烧烤夜宵", area: "待确认", address: "用户只提供店名和烤鳗鱼，未核到可靠地址", lat: null, lng: null, precision: "待确认", priority: "夜宵", note: "保留为待查。", source: "用户推荐" }
+    ];
+
+    const amapSearch = (point) => {
+      const q = encodeURIComponent(`${point.name} ${point.address || point.area} 泉州`);
+      return `https://www.amap.com/search?query=${q}`;
+    };
+
+    const googleSearch = (point) => {
+      const q = encodeURIComponent(`${point.name} ${point.address || point.area} 泉州`);
+      return `https://www.google.com/maps/search/?api=1&query=${q}`;
+    };
+
+    const byCategory = (category) => categories[category] || categories["待确认"];
+    const hasCoord = (p) => typeof p.lat === "number" && typeof p.lng === "number";
+    const isExact = (p) => ["坐标级", "地址级"].includes(p.precision);
+
+    document.getElementById("totalCount").textContent = points.length;
+    document.getElementById("mappedCount").textContent = points.filter(hasCoord).length;
+    document.getElementById("exactCount").textContent = points.filter((p) => hasCoord(p) && isExact(p)).length;
+
+    const map = L.map("map", { scrollWheelZoom: true }).setView([24.91, 118.59], 12);
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      maxZoom: 19,
+      attribution: '&copy; OpenStreetMap contributors'
+    }).addTo(map);
+
+    const markerLayer = L.layerGroup().addTo(map);
+    const markers = new Map();
+
+    function markerIcon(color) {
+      return L.divIcon({
+        className: "",
+        html: `<div class="pin" style="background:${color}"><span></span></div>`,
+        iconSize: [24, 24],
+        iconAnchor: [12, 22],
+        popupAnchor: [0, -20]
+      });
+    }
+
+    points.forEach((point) => {
+      if (!hasCoord(point)) return;
+      const marker = L.marker([point.lat, point.lng], { icon: markerIcon(byCategory(point.category)) });
+      marker.bindPopup(`
+        <div class="popup">
+          <h3>${point.name}</h3>
+          <p><b>${point.category}</b> · ${point.area} · ${point.precision}</p>
+          <p>${point.address}</p>
+          <p>${point.note}</p>
+          <p><a href="${amapSearch(point)}" target="_blank" rel="noreferrer">高德搜索</a> · <a href="${googleSearch(point)}" target="_blank" rel="noreferrer">Google Maps</a></p>
+        </div>
+      `);
+      marker.addTo(markerLayer);
+      markers.set(point.name, marker);
+    });
+
+    const plotted = points.filter(hasCoord).map((p) => [p.lat, p.lng]);
+    if (plotted.length) {
+      map.fitBounds(plotted, { padding: [28, 28] });
+    }
+
+    const legend = L.control({ position: "bottomright" });
+    legend.onAdd = () => {
+      const div = L.DomUtil.create("div", "legend");
+      div.innerHTML = Object.entries(categories)
+        .map(([name, color]) => `<div class="legend-row"><span class="legend-dot" style="background:${color}"></span>${name}</div>`)
+        .join("");
+      return div;
+    };
+    legend.addTo(map);
+
+    const filters = document.getElementById("filters");
+    const list = document.getElementById("list");
+    const search = document.getElementById("search");
+    let activeCategory = "全部";
+
+    ["全部", ...Object.keys(categories)].forEach((category) => {
+      const button = document.createElement("button");
+      button.textContent = category;
+      button.className = category === activeCategory ? "active" : "";
+      button.addEventListener("click", () => {
+        activeCategory = category;
+        [...filters.children].forEach((child) => child.classList.toggle("active", child.textContent === category));
+        render();
+      });
+      filters.appendChild(button);
+    });
+
+    function visiblePoints() {
+      const keyword = search.value.trim().toLowerCase();
+      return points.filter((point) => {
+        const inCategory = activeCategory === "全部" || point.category === activeCategory;
+        const haystack = `${point.name} ${point.category} ${point.area} ${point.address} ${point.note} ${point.priority}`.toLowerCase();
+        return inCategory && (!keyword || haystack.includes(keyword));
+      });
+    }
+
+    function render() {
+      const rows = visiblePoints();
+      markerLayer.clearLayers();
+      rows.forEach((point) => {
+        const marker = markers.get(point.name);
+        if (marker) marker.addTo(markerLayer);
+      });
+
+      list.innerHTML = rows.map((point) => `
+        <article class="item">
+          <span class="dot" style="background:${byCategory(point.category)}"></span>
+          <div>
+            <h2>${point.name}</h2>
+            <div class="meta">${point.category} · ${point.area} · ${point.precision} · ${point.priority}</div>
+            <div class="note">${point.address}</div>
+            <div class="note">${point.note}</div>
+            <div class="links">
+              ${hasCoord(point) ? `<a href="#" data-focus="${point.name}">地图定位</a>` : `<span>未上图</span>`}
+              <a href="${amapSearch(point)}" target="_blank" rel="noreferrer">高德搜索</a>
+              <a href="${googleSearch(point)}" target="_blank" rel="noreferrer">Google Maps</a>
+            </div>
+          </div>
+        </article>
+      `).join("");
+    }
+
+    list.addEventListener("click", (event) => {
+      const target = event.target.closest("[data-focus]");
+      if (!target) return;
+      event.preventDefault();
+      const marker = markers.get(target.dataset.focus);
+      if (!marker) return;
+      const point = marker.getLatLng();
+      map.setView(point, 16);
+      marker.openPopup();
+    });
+
+    search.addEventListener("input", render);
+    render();
+  </script>
+</body>
+</html>

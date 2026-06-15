@@ -1,0 +1,500 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>泉州三晚三天行程路线图</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f6f4ef;
+      --panel: #fffdf8;
+      --ink: #1f2933;
+      --muted: #667085;
+      --line: #ded8ce;
+      --accent: #0f766e;
+      --shadow: 0 14px 34px rgba(46, 40, 32, .16);
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100dvh;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      color: var(--ink);
+      background: var(--bg);
+    }
+
+    .app {
+      display: grid;
+      grid-template-columns: minmax(360px, 460px) minmax(0, 1fr);
+      height: 100dvh;
+    }
+
+    aside {
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+      border-right: 1px solid var(--line);
+      background: var(--panel);
+      box-shadow: var(--shadow);
+      z-index: 500;
+    }
+
+    header {
+      padding: 20px 22px 14px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    h1 {
+      margin: 0 0 8px;
+      font-size: 24px;
+      line-height: 1.2;
+      letter-spacing: 0;
+    }
+
+    .subtitle {
+      margin: 0;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.55;
+    }
+
+    .verdict {
+      margin-top: 14px;
+      padding: 10px 12px;
+      border: 1px solid #b7d8ce;
+      border-radius: 8px;
+      background: #eef8f5;
+      color: #10594f;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .tabs {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      padding: 14px 18px 12px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    button {
+      appearance: none;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 8px 12px;
+      background: white;
+      color: var(--ink);
+      cursor: pointer;
+      font: inherit;
+      font-size: 13px;
+      line-height: 1;
+    }
+
+    button.active {
+      color: white;
+      background: var(--accent);
+      border-color: var(--accent);
+    }
+
+    .panel {
+      min-height: 0;
+      overflow: auto;
+      padding: 14px 18px 20px;
+    }
+
+    .day-title {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    .day-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      flex: 0 0 auto;
+    }
+
+    h2 {
+      margin: 0;
+      font-size: 18px;
+      letter-spacing: 0;
+    }
+
+    .summary {
+      margin: 0 0 14px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.55;
+    }
+
+    .stop {
+      display: grid;
+      grid-template-columns: 34px 1fr;
+      gap: 10px;
+      padding: 11px 0;
+      border-bottom: 1px solid #ece5d8;
+    }
+
+    .num {
+      display: grid;
+      place-items: center;
+      width: 28px;
+      height: 28px;
+      border-radius: 999px;
+      color: white;
+      font-weight: 700;
+      font-size: 13px;
+      margin-top: 2px;
+    }
+
+    .stop h3 {
+      margin: 0;
+      font-size: 15px;
+      line-height: 1.35;
+    }
+
+    .meta {
+      margin-top: 5px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .note {
+      margin-top: 6px;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 9px;
+      margin-top: 8px;
+      font-size: 12px;
+    }
+
+    a {
+      color: #0f766e;
+      text-decoration: none;
+    }
+
+    a:hover { text-decoration: underline; }
+
+    #map {
+      min-height: 100dvh;
+      background: #e7dfd0;
+    }
+
+    .marker {
+      display: grid;
+      place-items: center;
+      width: 26px;
+      height: 26px;
+      border-radius: 50% 50% 50% 0;
+      transform: rotate(-45deg);
+      color: white;
+      border: 2px solid white;
+      box-shadow: 0 3px 10px rgba(0,0,0,.28);
+      font: 700 12px/1 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    .marker span {
+      transform: rotate(45deg);
+    }
+
+    .leaflet-popup-content {
+      margin: 12px 14px;
+      min-width: 220px;
+    }
+
+    .popup h3 {
+      margin: 0 0 6px;
+      font-size: 15px;
+    }
+
+    .popup p {
+      margin: 5px 0;
+      color: #4b5563;
+      line-height: 1.45;
+    }
+
+    .legend {
+      padding: 10px 12px;
+      background: rgba(255,255,255,.95);
+      border-radius: 8px;
+      box-shadow: 0 6px 22px rgba(0,0,0,.16);
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    .legend-row {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      white-space: nowrap;
+    }
+
+    .legend-dot {
+      width: 16px;
+      height: 4px;
+      border-radius: 999px;
+    }
+
+    .leaflet-control-attribution { font-size: 10px; }
+
+    @media (max-width: 900px) {
+      .app {
+        grid-template-columns: 1fr;
+        grid-template-rows: 54dvh 46dvh;
+      }
+
+      aside {
+        grid-row: 2;
+        border-right: 0;
+        border-top: 1px solid var(--line);
+      }
+
+      #map {
+        grid-row: 1;
+        min-height: 54dvh;
+      }
+
+      header { padding: 14px 16px 10px; }
+      h1 { font-size: 20px; }
+      .tabs { padding: 10px 14px; }
+      .panel { padding: 12px 14px 18px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <aside>
+      <header>
+        <h1>泉州三晚三天行程路线图</h1>
+        <p class="subtitle">按 2026-06-17 晚到、2026-06-20 下午返程设计。线条表示游玩顺序，不代表实时导航路线；出发当天用高德再看路况和潮汐/天气。</p>
+        <div class="verdict">核心调整：周四古城轻松可完成；周五石狮压成“洛伽寺/黄金海岸 + 红塔湾 + 永宁古镇”，观音山只做机动。</div>
+      </header>
+      <nav class="tabs" id="tabs"></nav>
+      <section class="panel" id="panel"></section>
+    </aside>
+    <section id="map" aria-label="泉州行程路线地图"></section>
+  </main>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script>
+    const days = [
+      {
+        id: "all",
+        label: "总览",
+        color: "#0f766e",
+        title: "总览：古城两段 + 石狮海岸线 + 洛阳桥收尾",
+        summary: "最稳的结构是：周三夜逛西街；周四整天古城；周五包车/打车去石狮海岸线；周六上午洛阳桥，下午返程。",
+        stops: []
+      },
+      {
+        id: "wed",
+        label: "周三晚",
+        color: "#7c3aed",
+        title: "周三晚：入住古城附近，轻逛西街",
+        summary: "晚上到达后不要安排庙宇，只做西街、钟楼夜景和小吃，保留体力给周四。",
+        stops: [
+          { n: 1, name: "古城附近住宿", time: "晚间入住", lat: 24.9148, lng: 118.5858, note: "建议住西街/钟楼/开元寺一带，步行和叫车都方便。", address: "泉州古城西街附近" },
+          { n: 2, name: "西街", time: "20:00-21:30", lat: 24.9154, lng: 118.5845, note: "夜逛、吃小吃、看双塔远景即可，别排太多网红店。", address: "泉州市鲤城区西街" },
+          { n: 3, name: "钟楼", time: "21:30-22:00", lat: 24.9149599, lng: 118.5880777, note: "夜景打卡后回酒店休息。", address: "泉州市鲤城区东街/西街交汇处" }
+        ]
+      },
+      {
+        id: "thu",
+        label: "周四古城",
+        color: "#2563eb",
+        title: "周四：古城主线，必去点全覆盖",
+        summary: "按北到南走最顺：开元寺/西街 - 钟楼 - 清净寺 - 关岳庙 - 天后宫。清净寺和关岳庙相邻，天后宫放下午，结束后回西街吃饭。",
+        stops: [
+          { n: 1, name: "开元寺", time: "08:30-10:10", lat: 24.9173271, lng: 118.5810737, note: "早上人相对少，先看东西塔和红墙。", address: "泉州市鲤城区西街176号" },
+          { n: 2, name: "西街/钟楼", time: "10:10-10:40", lat: 24.9149599, lng: 118.5880777, note: "从西街慢走到钟楼，中途咖啡/小吃都可。", address: "泉州市鲤城区西街至钟楼" },
+          { n: 3, name: "清净寺", time: "11:00-11:35", lat: 24.9056688, lng: 118.5870941, note: "涂门街核心点，停留不用太久。", address: "泉州市鲤城区涂门街108-110号" },
+          { n: 4, name: "通淮关岳庙", time: "11:40-12:20", lat: 24.9048310, lng: 118.5883879, note: "香火很旺，和清净寺几乎挨着，必须点。", address: "泉州市鲤城区涂门街255号" },
+          { n: 5, name: "午餐/休息", time: "12:20-13:50", lat: 24.9066, lng: 118.5902, note: "这段别硬赶，下午还要走天后宫。", address: "涂门街/中山南路一带" },
+          { n: 6, name: "天后宫", time: "14:10-15:20", lat: 24.9006, lng: 118.5883, note: "必去点，顺带看德济门遗址。", address: "泉州市鲤城区南门天后路1号" },
+          { n: 7, name: "返程回西街/自由逛", time: "16:00以后", lat: 24.9154, lng: 118.5845, note: "傍晚回古城吃饭，体力好可补承天寺或中山路。", address: "西街/中山路一带" }
+        ]
+      },
+      {
+        id: "fri",
+        label: "周五石狮",
+        color: "#dc2626",
+        title: "周五：石狮海岸线，删繁就简",
+        summary: "石狮建议打车/包车。海边天气变数大，先去黄金海岸和洛伽寺，红塔湾看天气，永宁古镇作为午后避晒/避雨点。观音山离海岸线近，但只作为机动。",
+        stops: [
+          { n: 1, name: "古城出发", time: "08:30", lat: 24.9148, lng: 118.5858, note: "从古城到石狮永宁海边通常要预留1小时以上，公共交通会明显拖慢。", address: "泉州古城附近" },
+          { n: 2, name: "洛伽寺", time: "10:00-11:10", lat: 24.6762788, lng: 118.7080767, note: "海上寺庙，优先安排；遇涨潮/雨天注意安全。", address: "石狮市永宁镇黄金海岸943号/滨海东路" },
+          { n: 3, name: "黄金海岸", time: "11:10-12:00", lat: 24.6761151, lng: 118.7024368, note: "和洛伽寺连在一线，拍海景即可，不建议长时间暴晒。", address: "石狮市永宁镇海滨" },
+          { n: 4, name: "永宁古镇/午餐", time: "12:30-14:30", lat: 24.6680, lng: 118.6860, note: "古镇适合吃饭、看老街和番仔楼，比海边更适合中午避暑。", address: "石狮市永宁镇" },
+          { n: 5, name: "红塔湾", time: "15:00-16:10", lat: 24.6891845, lng: 118.7154057, note: "天气好再去；若下午雷阵雨，直接放弃，别在海边硬等。", address: "石狮市永宁镇沙堤村6区40号" },
+          { n: 6, name: "观音山风景区", time: "机动 20-40分钟", lat: 24.6811709, lng: 118.7133410, note: "与红塔湾/洛伽寺同片区，只在天晴、有车、有体力时补。", address: "石狮市永宁镇红塔湾旅游公路" },
+          { n: 7, name: "返回泉州古城", time: "17:00左右", lat: 24.9148, lng: 118.5858, note: "晚饭回古城或在石狮吃完再回，取决于天气和车。", address: "泉州古城附近" }
+        ]
+      },
+      {
+        id: "sat",
+        label: "周六返程",
+        color: "#ea580c",
+        title: "周六：洛阳桥收尾，下午返程",
+        summary: "如果下午回家，周六上午只安排洛阳桥最稳。回程早于14:00就不要再加别的点；回程晚可补古城小巷或午餐。",
+        stops: [
+          { n: 1, name: "古城/酒店寄存行李", time: "08:30", lat: 24.9148, lng: 118.5858, note: "退房前后先处理行李。", address: "泉州古城附近" },
+          { n: 2, name: "洛阳桥", time: "09:20-10:30", lat: 24.9554008, lng: 118.6767712, note: "全天开放、免费，适合上午去，避开中午热。", address: "泉州市洛江区蔡襄路/洛阳桥景区" },
+          { n: 3, name: "返回古城午餐/取行李", time: "11:20-12:40", lat: 24.9148, lng: 118.5858, note: "如果车站在泉州站，务必给打车和安检留余量。", address: "泉州古城附近" },
+          { n: 4, name: "返程", time: "下午", lat: 24.9848, lng: 118.5453, note: "此点用泉州站作参考；若从泉州南/晋江站走，时间要重新算。", address: "泉州站/实际返程站" }
+        ]
+      }
+    ];
+
+    const allStops = days.filter((d) => d.id !== "all").flatMap((day) => day.stops.map((stop) => ({ ...stop, day: day.id, color: day.color })));
+    days[0].stops = allStops;
+
+    const map = L.map("map", { scrollWheelZoom: true }).setView([24.85, 118.64], 10);
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      maxZoom: 19,
+      attribution: '&copy; OpenStreetMap contributors'
+    }).addTo(map);
+
+    const markerLayer = L.layerGroup().addTo(map);
+    const lineLayer = L.layerGroup().addTo(map);
+    const markerMap = new Map();
+
+    const amapSearch = (stop) => {
+      const q = encodeURIComponent(`${stop.name} ${stop.address} 泉州`);
+      return `https://www.amap.com/search?query=${q}`;
+    };
+
+    function icon(stop, color) {
+      return L.divIcon({
+        className: "",
+        html: `<div class="marker" style="background:${color}"><span>${stop.n}</span></div>`,
+        iconSize: [30, 30],
+        iconAnchor: [15, 27],
+        popupAnchor: [0, -25]
+      });
+    }
+
+    function popup(stop, day) {
+      return `
+        <div class="popup">
+          <h3>${stop.n}. ${stop.name}</h3>
+          <p><b>${stop.time}</b></p>
+          <p>${stop.address}</p>
+          <p>${stop.note}</p>
+          <p><a href="${amapSearch(stop)}" target="_blank" rel="noreferrer">高德搜索</a></p>
+        </div>
+      `;
+    }
+
+    function draw(dayId) {
+      markerLayer.clearLayers();
+      lineLayer.clearLayers();
+      const selectedDays = dayId === "all" ? days.filter((d) => d.id !== "all") : days.filter((d) => d.id === dayId);
+      const bounds = [];
+
+      selectedDays.forEach((day) => {
+        const coords = day.stops.map((stop) => [stop.lat, stop.lng]);
+        if (coords.length > 1) {
+          L.polyline(coords, {
+            color: day.color,
+            weight: 4,
+            opacity: .82,
+            dashArray: day.id === "fri" ? "10 7" : null
+          }).addTo(lineLayer);
+        }
+
+        day.stops.forEach((stop) => {
+          const key = `${day.id}-${stop.n}-${stop.name}`;
+          const marker = L.marker([stop.lat, stop.lng], { icon: icon(stop, day.color) })
+            .bindPopup(popup(stop, day));
+          marker.addTo(markerLayer);
+          markerMap.set(key, marker);
+          bounds.push([stop.lat, stop.lng]);
+        });
+      });
+
+      if (bounds.length) {
+        map.fitBounds(bounds, { padding: [32, 32] });
+      }
+    }
+
+    const tabs = document.getElementById("tabs");
+    const panel = document.getElementById("panel");
+    let active = "all";
+
+    function renderPanel() {
+      const day = days.find((d) => d.id === active);
+      const color = day.color;
+      const stops = active === "all" ? days.filter((d) => d.id !== "all").map((d) => `
+        <div class="day-title"><span class="day-dot" style="background:${d.color}"></span><h2>${d.title}</h2></div>
+        <p class="summary">${d.summary}</p>
+      `).join("") : day.stops.map((stop) => `
+        <article class="stop">
+          <span class="num" style="background:${color}">${stop.n}</span>
+          <div>
+            <h3>${stop.name}</h3>
+            <div class="meta">${stop.time} · ${stop.address}</div>
+            <div class="note">${stop.note}</div>
+            <div class="links">
+              <a href="#" data-focus="${day.id}-${stop.n}-${stop.name}">地图定位</a>
+              <a href="${amapSearch(stop)}" target="_blank" rel="noreferrer">高德搜索</a>
+            </div>
+          </div>
+        </article>
+      `).join("");
+
+      panel.innerHTML = `
+        <div class="day-title"><span class="day-dot" style="background:${color}"></span><h2>${day.title}</h2></div>
+        <p class="summary">${day.summary}</p>
+        ${stops}
+      `;
+    }
+
+    days.forEach((day) => {
+      const button = document.createElement("button");
+      button.textContent = day.label;
+      button.className = day.id === active ? "active" : "";
+      button.addEventListener("click", () => {
+        active = day.id;
+        [...tabs.children].forEach((child) => child.classList.toggle("active", child.textContent === day.label));
+        draw(active);
+        renderPanel();
+      });
+      tabs.appendChild(button);
+    });
+
+    panel.addEventListener("click", (event) => {
+      const target = event.target.closest("[data-focus]");
+      if (!target) return;
+      event.preventDefault();
+      const marker = markerMap.get(target.dataset.focus);
+      if (!marker) return;
+      map.setView(marker.getLatLng(), 15);
+      marker.openPopup();
+    });
+
+    const legend = L.control({ position: "bottomright" });
+    legend.onAdd = () => {
+      const div = L.DomUtil.create("div", "legend");
+      div.innerHTML = days.filter((d) => d.id !== "all").map((day) => `
+        <div class="legend-row"><span class="legend-dot" style="background:${day.color}"></span>${day.label}</div>
+      `).join("");
+      return div;
+    };
+    legend.addTo(map);
+
+    draw(active);
+    renderPanel();
+  </script>
+</body>
+</html>
