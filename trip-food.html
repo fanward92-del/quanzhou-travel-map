@@ -16,6 +16,7 @@
       --accent: #0f766e;
       --food: #dc2626;
       --sight: #2563eb;
+      --hotel: #111827;
       --shadow: 0 14px 34px rgba(46, 40, 32, .16);
     }
 
@@ -221,6 +222,7 @@
 
     .food-marker { background: var(--food); }
     .sight-marker { background: var(--sight); }
+    .hotel-marker { background: var(--hotel); }
 
     .leaflet-popup-content {
       margin: 12px 14px;
@@ -292,7 +294,7 @@
       <header>
         <h1>泉州路线 + 美食安排</h1>
         <p class="subtitle">把必去景点和必吃店合在同一条动线上。古城按步行/短打车排，石狮单独一天，不和古城硬混。</p>
-        <div class="verdict">核心建议：周四早餐吃水门国仔，午餐打车去阿秋，下午天后宫后接秉正堂；周五石狮用“小吃拼盘 + 海岸线 + 绿岛海鲜”解决。</div>
+        <div class="verdict">住宿点：汉庭酒店（泉州西街中山路店），鲤城区胭脂巷59号。核心建议：周四早餐吃水门国仔，午餐打车去阿秋，下午天后宫后接秉正堂；周五石狮用“小吃拼盘 + 海岸线 + 绿岛海鲜”解决。</div>
       </header>
       <nav class="tabs" id="tabs"></nav>
       <section class="panel" id="panel"></section>
@@ -302,6 +304,19 @@
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script>
+    const hotel = {
+      type: "hotel",
+      n: "住",
+      name: "汉庭酒店（泉州西街中山路店）",
+      meal: "住宿",
+      time: "三晚住宿点",
+      lat: 24.903863,
+      lng: 118.588489,
+      route: "鲤城区胭脂巷59号",
+      note: "携程页面提取到的高德坐标。它在中山路/胭脂巷一带，去天后宫、关岳庙、清净寺和水门国仔都很近。",
+      tags: ["酒店", "胭脂巷59号", "古城核心"]
+    };
+
     const days = [
       {
         id: "wed",
@@ -310,7 +325,7 @@
         title: "周三晚：落地后轻吃，别把胃和腿都用完",
         summary: "如果到得不晚，晚饭吃斯丹姜母鸭；如果到得晚，就把斯丹挪到周四晚，周三只逛西街和吃冰。",
         stops: [
-          { type: "sight", n: "住", name: "古城附近住宿", meal: "入住", time: "晚间", lat: 24.9148, lng: 118.5858, route: "酒店 → 西街/钟楼", note: "住西街、钟楼、开元寺附近最省力。", tags: ["住宿", "古城"] },
+          { type: "hotel", n: "住", name: "汉庭酒店（泉州西街中山路店）", meal: "入住", time: "晚间", lat: 24.903863, lng: 118.588489, route: "酒店 → 西街/钟楼", note: "鲤城区胭脂巷59号；三晚都住这里，周五石狮往返，不搬酒店。", tags: ["住宿", "汉庭", "古城"] },
           { type: "food", n: "晚", name: "斯丹姜母鸭", meal: "晚饭", time: "到得不晚就吃", lat: 24.9061, lng: 118.5927, route: "酒店短打车或步行到涂门街", note: "你点名想吃，优先安排。若抵达太晚或排队，就挪到周四晚饭。", tags: ["必吃", "姜母鸭", "可顺清净寺"] },
           { type: "food", n: "点", name: "丛甜牛奶冰", meal: "点心", time: "饭后/夜宵", lat: 24.9108, lng: 118.5859, route: "斯丹/钟楼 → 新华北路 → 西街", note: "位置适合晚上回西街路上吃。周三没吃到，就放周四下午或晚上。", tags: ["必吃", "甜品", "西街附近"] },
           { type: "sight", n: "逛", name: "西街 + 钟楼夜景", meal: "散步", time: "20:30-22:00", lat: 24.9149599, lng: 118.5880777, route: "西街慢走到钟楼", note: "只做夜景和轻逛，不再加寺庙。", tags: ["夜景", "轻松"] }
@@ -387,10 +402,26 @@
     const markerMap = new Map();
     let active = "thu";
 
-    const amapSearch = (stop) => `https://www.amap.com/search?query=${encodeURIComponent(stop.name + " 泉州")}`;
+    const amapSearch = (stop) => `https://www.amap.com/search?query=${encodeURIComponent(stop.name + " " + (stop.route || "") + " 泉州")}`;
+
+    function distanceKm(a, b) {
+      const toRad = (value) => value * Math.PI / 180;
+      const earth = 6371;
+      const dLat = toRad(b.lat - a.lat);
+      const dLng = toRad(b.lng - a.lng);
+      const lat1 = toRad(a.lat);
+      const lat2 = toRad(b.lat);
+      const h = Math.sin(dLat / 2) ** 2 + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) ** 2;
+      return 2 * earth * Math.asin(Math.sqrt(h));
+    }
+
+    function distanceText(stop) {
+      const km = distanceKm(hotel, stop);
+      return km < 1 ? `${Math.round(km * 1000)} m` : `${km.toFixed(1)} km`;
+    }
 
     function markerIcon(stop) {
-      const klass = stop.type === "food" ? "food-marker" : "sight-marker";
+      const klass = stop.type === "food" ? "food-marker" : stop.type === "hotel" ? "hotel-marker" : "sight-marker";
       return L.divIcon({
         className: "",
         html: `<div class="marker ${klass}"><span>${stop.n}</span></div>`,
@@ -438,6 +469,13 @@
         });
       });
 
+      if (active !== "wed" && active !== "all") {
+        const hotelMarker = L.marker([hotel.lat, hotel.lng], { icon: markerIcon(hotel) }).bindPopup(popup(hotel));
+        hotelMarker.addTo(markerLayer);
+        markerMap.set("hotel", hotelMarker);
+        bounds.push([hotel.lat, hotel.lng]);
+      }
+
       if (bounds.length) map.fitBounds(bounds, { padding: [34, 34] });
     }
 
@@ -458,9 +496,24 @@
       }
 
       const day = days.find((item) => item.id === active);
+      const foodStops = day.stops.filter((stop) => stop.type === "food");
       panel.innerHTML = `
         <h2>${day.title}</h2>
         <p class="summary">${day.summary}</p>
+        <section class="block">
+          <div class="block-head">
+            <span class="meal">住宿点</span>
+            <span class="time">固定三晚</span>
+          </div>
+          <h3>${hotel.name}</h3>
+          <div class="route">${hotel.route}</div>
+          <div class="note">下面距离均为从酒店到吃饭点的直线距离，实际步行/打车以当天导航为准。</div>
+          <div class="tags">${foodStops.map((stop) => `<span class="tag">${stop.name}：约 ${distanceText(stop)}</span>`).join("")}</div>
+          <div class="links">
+            <a href="#" data-focus="hotel">地图定位</a>
+            <a href="${amapSearch(hotel)}" target="_blank" rel="noreferrer">高德搜索</a>
+          </div>
+        </section>
         ${day.stops.map((stop, index) => `
           <article class="block">
             <div class="block-head">
@@ -470,7 +523,7 @@
             <h3>${stop.name}</h3>
             <div class="route">${stop.route}</div>
             <div class="note">${stop.note}</div>
-            <div class="tags">${stop.tags.map((tag) => `<span class="tag">${tag}</span>`).join("")}</div>
+            <div class="tags">${[...stop.tags, ...(stop.type === "food" ? [`距酒店约 ${distanceText(stop)}`] : [])].map((tag) => `<span class="tag">${tag}</span>`).join("")}</div>
             <div class="links">
               <a href="#" data-focus="${day.id}-${index}">地图定位</a>
               <a href="${amapSearch(stop)}" target="_blank" rel="noreferrer">高德搜索</a>
@@ -512,6 +565,7 @@
       div.innerHTML = `
         <div class="legend-row"><span class="legend-dot" style="background:var(--sight)"></span>景点/交通</div>
         <div class="legend-row"><span class="legend-dot" style="background:var(--food)"></span>吃饭/点心</div>
+        <div class="legend-row"><span class="legend-dot" style="background:var(--hotel)"></span>酒店</div>
       `;
       return div;
     };
