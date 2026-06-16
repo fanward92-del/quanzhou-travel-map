@@ -6,6 +6,7 @@
 - `trip-food.html`：路线 + 美食安排综合版
 - `trip.html`：泉州三晚三天行程路线图
 - `food.html`：泉州美食点位地图
+- `quanzhou-travel-food-guide.docx`：可下载 Word 攻略
 - `泉州三晚三天路线建议.md`：行程文字版
 - `泉州美食地点汇总.md`：美食文字版
 - `泉州路线美食安排.md`：路线 + 美食文字版

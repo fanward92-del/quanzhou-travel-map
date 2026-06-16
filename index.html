@@ -47,7 +47,7 @@
 
     .grid {
       display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
+      grid-template-columns: repeat(4, minmax(0, 1fr));
       gap: 16px;
     }
 
@@ -99,6 +99,10 @@
       .grid { grid-template-columns: 1fr; }
       .card { min-height: 190px; }
     }
+
+    @media (min-width: 721px) and (max-width: 960px) {
+      .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
   </style>
 </head>
 <body>
@@ -126,6 +130,13 @@
           <p>整理了面线糊、牛肉、姜母鸭、醋肉、甜品、海鲜和石狮晋江小吃点位。</p>
         </div>
         <a class="button" href="./food.html">打开美食图</a>
+      </article>
+      <article class="card">
+        <div>
+          <h2>Word 攻略</h2>
+          <p>把新版路线和必吃清单整理成可下载文档，适合发给同行的人一起看。</p>
+        </div>
+        <a class="button" href="./quanzhou-travel-food-guide.docx">下载 Word</a>
       </article>
     </section>
     <p class="note">地图底图来自 OpenStreetMap，出发当天仍建议用高德或其他导航软件确认实时交通、营业状态和天气。</p>
